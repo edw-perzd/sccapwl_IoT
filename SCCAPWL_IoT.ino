@@ -1,13 +1,14 @@
 #include <Firebase_ESP_Client.h>
 #include <WiFi.h>
 #include <addons/TokenHelper.h>
-// #include <LiquidCrystal.h> // Libreria para la pantalla LCD
 #include <OneWire.h>            // Libreria para la comunicación ONEWIRE
 #include <DallasTemperature.h>  // Libreria para el sensor de temperatura
 
 #define PIN_TEMPERATURA 2  // Pin para el sensor de temperatura
-#define PIN_TDS 27         // Pin para el sensor de TDS
 #define PIN_PH 35          // Pin para el sensor de pH
+
+#define RXp2 16
+#define TXp2 17
 
 #define WIFI_SSID "WINDOWS-L4A2JTV 2447"
 #define WIFI_PASSWORD "desktop_EDU123"
@@ -26,8 +27,6 @@ float adc_resolution = 4095.0;  //ESP 32 ADC Resolution
 
 OneWire oneWire(PIN_TEMPERATURA);   // Se inicializa comunicación ONEWIRE
 DallasTemperature temp1(&oneWire);  // Se inicializa en sensor de temperatura
-
-float tdsValue = 0;
 
 const char* tz = "CET-1CEST,M3.5.0,M10.5.0/3";
 int DISTANCIA = 0;
@@ -53,9 +52,8 @@ long readUltrasonicDistance(int triggerPin, int echoPin) {
 }
 
 void setup() {
-  pinMode(PIN_TDS, INPUT);
-
-  Serial.begin(9600);
+  Serial.begin(115200);
+  Serial2.begin(9600, SERIAL_8N1, RXp2, TXp2);
   Serial.println("Sensor de PH");
   Serial.println("Sensor de Temperatura");
 
@@ -90,25 +88,6 @@ double ph(float voltage) {
 }
 
 void loop() {
-  int measuringstds = 0;  // Variable donde se guardaran las muestras de TDS
-  for (int i = 0; i < samples; i++) {
-    measuringstds += analogRead(PIN_TDS);
-    delay(10);
-  }
-  float averageVoltage = (3.3 / adc_resolution * measuringstds / samples);
-
-  //temperature compensation formula: fFinalResult(25^C) = fFinalResult(current)/(1.0+0.02*(fTP-25.0));
-  float compensationCoefficient = 1.0 + 0.02 * (25.0 - 25.0);
-  //temperature compensation
-  float compensationVoltage = averageVoltage / compensationCoefficient;
-
-  //convert voltage value to tds value
-  tdsValue = (133.42 * compensationVoltage * compensationVoltage * compensationVoltage - 255.86 * compensationVoltage * compensationVoltage + 857.39 * compensationVoltage) * 0.5;
-
-
-  Serial.print("TDS Value:");
-  Serial.print(tdsValue);
-  Serial.println("ppm");
   struct tm timeinfo;
   if (getLocalTime(&timeinfo)) {
     char timeString[20];
@@ -116,7 +95,12 @@ void loop() {
 
     String documentPath = "depositos/WL041216";
     FirebaseJson json;
-    json.set("fields/agua_contenida/mapValue/fields/nivelTDS_agua/doubleValue", tdsValue);
+
+    String tds = Serial2.readString();
+    
+    Serial.print(tds);
+    Serial.println(" ppm");
+    json.set("fields/agua_contenida/mapValue/fields/nivelTDS_agua/stringValue", tds);
 
     int measurings = 0;  // Variable donde se guardaran las muestras de pH
     for (int i = 0; i < samples; i++) {
@@ -154,10 +138,7 @@ void loop() {
       double cantAgua = DISTANCIA;
       json.set("fields/agua_contenida/mapValue/fields/cantidad_agua/doubleValue", cantAgua);
 
-      Serial.print("TDS Value:");
-      Serial.print(tdsValue);
-      Serial.println("ppm");
-      if (pH < 5.5 || tdsValue > 500) {
+      if (pH < 6.0) {
         json.set("fields/agua_contenida/mapValue/fields/estado_agua/booleanValue", false);
       } else {
         json.set("fields/agua_contenida/mapValue/fields/estado_agua/booleanValue", true);
