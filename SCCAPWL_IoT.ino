@@ -10,13 +10,13 @@
 #define RXp2 16
 #define TXp2 17
 
-#define WIFI_SSID "WINDOWS-L4A2JTV 2447"
-#define WIFI_PASSWORD "desktop_EDU123"
+#define WIFI_SSID ""
+#define WIFI_PASSWORD ""
 
-#define API_KEY "AIzaSyDBVSgdW3Sd5eXOgU4Wmym348_ZesCadsc"
-#define FIREBASE_PROJECT_ID "sccapwl-9fc3d"
-#define USER_EMAIL "legna642.dav@gmail.com"
-#define USER_PASSWORD "lamisma1"
+#define API_KEY ""
+#define FIREBASE_PROJECT_ID ""
+#define USER_EMAIL ""
+#define USER_PASSWORD ""
 
 FirebaseData fbdo;
 FirebaseAuth auth;
